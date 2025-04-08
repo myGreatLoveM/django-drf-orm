@@ -1,10 +1,16 @@
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from inventory.models import Category, Product
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from .serializers import CategorySerializer, CreateProductSerializer, ProductSerializer
+from .serializers import (
+    CategorySerializer,
+    CreateProductSerializer,
+    CreateProductStockSerializer,
+    ProductSerializer,
+    ProductStockSerializer,
+)
 
 # class InventoryCategoryModelViewSet(ModelViewSet):
 #     queryset = Category.objects.all()
@@ -45,18 +51,22 @@ from .serializers import CategorySerializer, CreateProductSerializer, ProductSer
     ),
     retrieve=extend_schema(
         summary="Get category with pk",
-        request=CategorySerializer,
+        parameters=[OpenApiParameter("id", type=int, location=OpenApiParameter.PATH)],
         responses={200: CategorySerializer},
         tags=["Categories"],
     ),
     update=extend_schema(
         summary="Update existing category",
         request=CategorySerializer,
+        parameters=[OpenApiParameter("id", type=int, location=OpenApiParameter.PATH)],
+        responses={200: CategorySerializer},
         tags=["Categories"],
     ),
     partial_update=extend_schema(
         summary="Partial Update existing category",
         request=CategorySerializer,
+        parameters=[OpenApiParameter("id", type=int, location=OpenApiParameter.PATH)],
+        responses={200: CategorySerializer},
         tags=["Categories"],
     ),
 )
@@ -162,5 +172,33 @@ class ProductViewSet(ViewSet):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List all product",
+        responses={200: ProductStockSerializer(many=True)},
+        tags=["Products-stocks"],
+    ),
+    create=extend_schema(
+        summary="Create a product with stock data",
+        request=CreateProductStockSerializer,
+        responses={201: CreateProductStockSerializer},
+        tags=["Products-stocks"],
+    ),
+)
+class ProductStockViewSet(ViewSet):
+
+    def list(self, request):
+        queryset = Product.objects.all()
+        serializer = ProductStockSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def create(self, request):
+        serializer = CreateProductStockSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
